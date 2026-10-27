@@ -1,6 +1,6 @@
 // Le Semainier · fonctionnement hors ligne
 // Changez VERSION à chaque mise à jour de l'application pour que les téléphones la rechargent.
-const VERSION = 'semainier-1';
+const VERSION = 'semainier-2';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 const CDN = ['cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 

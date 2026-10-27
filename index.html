@@ -412,15 +412,11 @@ button.sync { border: 0; background: transparent; padding: 6px 0; }
 <div class="login" id="login" hidden>
   <div class="login-card">
     <div class="brand"><small>Menus de la semaine</small>Le Semainier</div>
-    <p id="login-intro">Connectez-vous avec l'adresse e-mail de votre foyer. Vous recevrez un code par e-mail.</p>
+    <p id="login-intro">Connectez-vous avec l'adresse e-mail et le mot de passe de votre compte.</p>
     <form id="login-email" autocomplete="on">
-      <label class="field"><span>Adresse e-mail</span><input class="input" type="email" id="l-email" autocomplete="email" required></label>
-      <button class="btn primary block" type="submit">Recevoir le code</button>
-    </form>
-    <form id="login-code" hidden>
-      <label class="field"><span>Code reçu par e-mail</span><input class="input" id="l-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required></label>
+      <label class="field"><span>Adresse e-mail</span><input class="input" type="email" id="l-email" autocomplete="username" required></label>
+      <label class="field"><span>Mot de passe</span><input class="input" type="password" id="l-pass" autocomplete="current-password" required></label>
       <button class="btn primary block" type="submit">Se connecter</button>
-      <button class="btn ghost block" type="button" id="l-back">Changer d'adresse</button>
     </form>
     <p class="login-msg" id="login-msg" hidden></p>
   </div>
@@ -643,7 +639,7 @@ button.sync { border: 0; background: transparent; padding: 6px 0; }
 
   function showLogin(msg) {
     $('#login').hidden = false;
-    $('#login-email').hidden = false; $('#login-code').hidden = true;
+    $('#login-email').hidden = false;
     const m = $('#login-msg'); m.hidden = !msg; m.textContent = msg || '';
   }
 
@@ -661,37 +657,25 @@ button.sync { border: 0; background: transparent; padding: 6px 0; }
     if (data.session) enter(data.session); else showLogin();
   }
 
-  let loginEmail = '';
   $('#login-email').onsubmit = async e => {
     e.preventDefault();
-    loginEmail = $('#l-email').value.trim().toLowerCase();
+    const email = $('#l-email').value.trim().toLowerCase();
+    const password = $('#l-pass').value;
     const btn = e.target.querySelector('button'); btn.disabled = true;
-    const { error } = await sb.auth.signInWithOtp({
-      email: loginEmail,
-      options: { shouldCreateUser: false, emailRedirectTo: location.origin + location.pathname }
-    });
+    const m = $('#login-msg'); m.hidden = true;
+    const { error } = await sb.auth.signInWithPassword({ email, password });
     btn.disabled = false;
-    const m = $('#login-msg');
     if (error) {
       m.hidden = false;
-      m.textContent = /signup|not allowed|not found/i.test(error.message)
-        ? 'Cette adresse n\'a pas de compte. Ajoutez-la dans Supabase (Authentication > Users) puis dans la table « membres ».'
-        : /rate|seconds/i.test(error.message) ? 'Patientez une minute avant de redemander un code.' : 'Envoi impossible : ' + error.message;
+      m.textContent = /invalid/i.test(error.message)
+        ? 'E-mail ou mot de passe incorrect.'
+        : /confirm/i.test(error.message) ? 'Ce compte n\'est pas confirmé : cochez « Auto Confirm User » en le créant dans Supabase.'
+        : /rate|seconds|many/i.test(error.message) ? 'Trop d\'essais : patientez une minute.'
+        : 'Connexion impossible : ' + error.message;
       return;
     }
-    $('#login-email').hidden = true; $('#login-code').hidden = false;
-    m.hidden = false; m.textContent = `Code envoyé à ${loginEmail}. Il peut mettre une minute à arriver.`;
-    $('#l-code').focus();
+    $('#l-pass').value = '';
   };
-  $('#login-code').onsubmit = async e => {
-    e.preventDefault();
-    const token = $('#l-code').value.replace(/\s/g, '');
-    const btn = e.target.querySelector('button'); btn.disabled = true;
-    const { error } = await sb.auth.verifyOtp({ email: loginEmail, token, type: 'email' });
-    btn.disabled = false;
-    if (error) { const m = $('#login-msg'); m.hidden = false; m.textContent = 'Code incorrect ou expiré. Vérifiez-le ou demandez-en un nouveau.'; }
-  };
-  $('#l-back').onclick = () => showLogin();
 
   $('#sync').onclick = () => {
     if (!account) return;
